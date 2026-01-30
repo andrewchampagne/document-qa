@@ -34,7 +34,7 @@ try:
     
     # Let the user upload a file.
     uploaded_file = st.file_uploader(
-        "Upload a document (.txt or .md)", type=("txt", "md")
+        "Upload a document", type=("txt", "md", "pdf")
     )
 
 
@@ -64,8 +64,6 @@ try:
                 messages=messages,
                 stream=True,
             )
-
-            # Stream the response to the app using `st.write_stream`.
             st.write_stream(stream)
         
 except Exception as e:
