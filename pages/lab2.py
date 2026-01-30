@@ -43,34 +43,34 @@ try:
         disabled=not uploaded_file,
     )
 
-    if uploaded_file and question:
-        # Process the uploaded file and question.
-        document = uploaded_file.read().decode()
-        
-        # Build the prompt based on summary type
-        if summary_type == "Summarize in 100 words":
-            summary_instruction = "provide your response as a summary in approximately 100 words."
-        elif summary_type == "Summarize in 2 connecting paragraphs":
-            summary_instruction = "provide your response as a summary in 2 connecting paragraphs."
-        else:
-            summary_instruction = "provide your response as a summary in 5 bullet points."
-        
-        messages = [
-            {
-                "role": "user",
-                "content": f"Here's a document: {document} \n\n---\n\n {question} \n\n{summary_instruction}",
-            }
-        ]
+    if st.button("Generate Summary", disabled=not uploaded_file):
+            # Process the uploaded file
+            document = uploaded_file.read().decode()
+            
+            # Build the prompt based on summary type
+            if summary_type == "Summarize in 100 words":
+                summary_instruction = "Please summarize this document in approximately 100 words."
+            elif summary_type == "Summarize in 2 connecting paragraphs":
+                summary_instruction = "Please summarize this document in 2 connecting paragraphs."
+            else:
+                summary_instruction = "Please summarize this document in 5 bullet points."
+            
+            messages = [
+                {
+                    "role": "user",
+                    "content": f"Here's a document: {document} \n\n---\n\n{summary_instruction}",
+                }
+            ]
 
-        # Generate an answer using the OpenAI API.
-        stream = client.chat.completions.create(
-            model=model,
-            messages=messages,
-            stream=True,
-        )
+            # Generate an answer using the OpenAI API.
+            stream = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                stream=True,
+            )
 
-        # Stream the response to the app using `st.write_stream`.
-        st.write_stream(stream)
+            # Stream the response to the app using `st.write_stream`.
+            st.write_stream(stream)
         
 except Exception as e:
     st.error(f"Error: {e}")
