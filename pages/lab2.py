@@ -37,13 +37,8 @@ try:
         "Upload a document (.txt or .md)", type=("txt", "md")
     )
 
-    question = st.text_area(
-        "Now ask a question about the document!",
-        placeholder="Can you give me a short summary?",
-        disabled=not uploaded_file,
-    )
 
-    # Generate summary button
+    # Generate summary button because there is no longer a need for a text area 
     if st.button("Generate Summary", disabled=not uploaded_file):
             # Process the uploaded file
             document = uploaded_file.read().decode()
