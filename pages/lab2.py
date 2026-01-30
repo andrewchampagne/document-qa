@@ -22,7 +22,7 @@ summary_type = st.sidebar.radio(
 
 use_advanced_model = st.sidebar.checkbox("Use advanced model")
 model = "gpt-5-mini" if use_advanced_model else "gpt-5-nano"
-st.sidebar.caption(f"Current model: {model}")
+st.sidebar.write(f"Current model: {model}")
 
 # Get API key from Streamlit secrets
 # Also made a toml file
