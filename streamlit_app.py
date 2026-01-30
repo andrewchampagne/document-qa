@@ -1,12 +1,11 @@
 import streamlit as st
-import lab1
-import lab2
 
+# Define the pages using file paths in pages/ folder
+lab1 = st.Page("pages/lab1.py", title="Lab 1", icon="🔬")
+lab2 = st.Page("pages/lab2.py", title="Lab 2", icon="🧪", default=True)
 
-lab1 = st.Page(lab1.main, title="Lab 1", default=True)
-lab2 = st.Page(lab2.main, title="Lab 2")
 # Create navigation
 pg = st.navigation([lab1, lab2])
 
-
+# Run the selected page
 pg.run()
