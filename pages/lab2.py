@@ -43,6 +43,7 @@ try:
         disabled=not uploaded_file,
     )
 
+    # Generate summary button
     if st.button("Generate Summary", disabled=not uploaded_file):
             # Process the uploaded file
             document = uploaded_file.read().decode()
