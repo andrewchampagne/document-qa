@@ -41,7 +41,11 @@ try:
     # Generate summary button because there is no longer a need for a text area 
     if st.button("Generate Summary", disabled=not uploaded_file):
             # Process the uploaded file
-            document = uploaded_file.read().decode()
+            try:
+                document = uploaded_file.read().decode("utf-8")
+            except UnicodeDecodeError:
+                uploaded_file.seek(0)
+                document = uploaded_file.read().decode("latin-1")
             
             # Build the prompt based on summary type
             if summary_type == "Summarize in 100 words":
