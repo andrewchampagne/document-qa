@@ -156,8 +156,7 @@ def build_rag_context(chunks):
 st.divider()
 st.subheader("Lab 4 RAG Chatbot")
 st.write(
-    "Ask a question about the syllabus documents. The bot will retrieve relevant "
-    "chunks from ChromaDB and use them in the LLM prompt."
+    "Ask a question about the syllabus documents."
 )
 
 openai_api_key = st.secrets["OPENAI_API_KEY"]
