@@ -2,6 +2,7 @@ from pathlib import Path
 
 import chromadb
 import streamlit as st
+from openai import OpenAI
 from chromadb.utils.embedding_functions import OpenAIEmbeddingFunction
 from pypdf import PdfReader
 
@@ -112,10 +113,10 @@ st.write(f"Collection name: `{collection.name}`")
 st.write(f"Document chunks stored: `{collection.count()}`")
 
 
-def get_top_3_file_results(query_text):
+def retrieve_relevant_chunks(query_text, k=5):
     query_result = collection.query(
         query_texts=[query_text],
-        n_results=12,
+        n_results=k,
         include=["metadatas", "documents", "distances"],
     )
 
@@ -123,54 +124,92 @@ def get_top_3_file_results(query_text):
     documents = query_result.get("documents", [[]])[0]
     distances = query_result.get("distances", [[]])[0]
 
-    ordered_files = []
-    file_details = {}
-
+    chunks = []
     for metadata, document, distance in zip(metadatas, documents, distances):
-        source = metadata.get("source", "Unknown")
-        if source not in file_details:
-            file_details[source] = {
+        chunks.append(
+            {
+                "source": metadata.get("source", "Unknown"),
+                "page_number": metadata.get("page_number", "Unknown"),
+                "chunk_text": document,
                 "distance": distance,
-                "sample_text": document,
             }
-            ordered_files.append(source)
-        if len(ordered_files) == 3:
-            break
-
-    return ordered_files, file_details
+        )
+    return chunks
 
 
-def quick_relevance_check(query_text, sample_text):
-    query_terms = [term.lower() for term in query_text.split() if len(term) > 2]
-    sample_lower = (sample_text or "").lower()
-    matched_terms = [term for term in query_terms if term in sample_lower]
-    return matched_terms
+def build_rag_context(chunks):
+    context_blocks = []
+    unique_sources = []
+
+    for idx, chunk in enumerate(chunks, start=1):
+        source = chunk["source"]
+        if source not in unique_sources:
+            unique_sources.append(source)
+        context_blocks.append(
+            f"[Context {idx}] Source: {source} (Page {chunk['page_number']})\n"
+            f"{chunk['chunk_text']}"
+        )
+
+    return "\n\n".join(context_blocks), unique_sources
 
 
 st.divider()
-st.subheader("VectorDB Retrieval Test")
-
-test_query = st.selectbox(
-    "Pick a test search string",
-    ["Generative AI", "Text Mining", "Data Science Overview"],
+st.subheader("Lab 4 RAG Chatbot")
+st.write(
+    "Ask a question about the syllabus documents. The bot will retrieve relevant "
+    "chunks from ChromaDB and use them in the LLM prompt."
 )
-custom_query = st.text_input("Or enter your own search string (optional)")
-query_to_run = custom_query.strip() if custom_query.strip() else test_query
 
-if st.button("Run VectorDB Test"):
-    top_files, details = get_top_3_file_results(query_to_run)
+openai_api_key = st.secrets["OPENAI_API_KEY"]
+client = OpenAI(api_key=openai_api_key)
 
-    st.write(f"Search string: `{query_to_run}`")
-    st.write("Top 3 returned documents (ordered):")
-    for idx, filename in enumerate(top_files, start=1):
-        st.write(f"{idx}. {filename}")
+if "lab4_messages" not in st.session_state:
+    st.session_state.lab4_messages = []
 
-    st.write("Validation (quick check):")
-    for filename in top_files:
-        sample_text = details[filename]["sample_text"]
-        matched_terms = quick_relevance_check(query_to_run, sample_text)
-        status = "Seems relevant" if matched_terms else "Review manually"
-        st.write(
-            f"- {filename}: {status} | matched terms: "
-            f"{', '.join(matched_terms) if matched_terms else 'none'}"
-        )
+for message in st.session_state.lab4_messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+if user_question := st.chat_input("Ask about the 7 syllabus documents"):
+    st.session_state.lab4_messages.append({"role": "user", "content": user_question})
+    with st.chat_message("user"):
+        st.markdown(user_question)
+
+    retrieved_chunks = retrieve_relevant_chunks(user_question, k=5)
+    rag_context, sources_used = build_rag_context(retrieved_chunks)
+    rag_used = bool(rag_context.strip())
+
+    system_prompt = (
+        "You are a helpful course assistant. Answer using the retrieved syllabus "
+        "context when relevant. If the context is insufficient, say so and then "
+        "provide your best general guidance.\n\n"
+        "You must start your answer with exactly one of:\n"
+        "- RAG Status: Using retrieved syllabus context.\n"
+        "- RAG Status: No relevant retrieved syllabus context found.\n"
+    )
+
+    user_prompt = (
+        f"Question:\n{user_question}\n\n"
+        f"Retrieved context:\n{rag_context if rag_used else 'None'}\n\n"
+        "If you used retrieved context, cite source filenames in a short "
+        "'Sources used:' line at the end."
+    )
+
+    with st.chat_message("assistant"):
+        try:
+            completion = client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+            )
+            assistant_text = completion.choices[0].message.content or ""
+            st.markdown(assistant_text)
+            if rag_used and sources_used:
+                st.caption(f"Retrieved from ChromaDB: {', '.join(sources_used)}")
+            st.session_state.lab4_messages.append(
+                {"role": "assistant", "content": assistant_text}
+            )
+        except Exception as exc:
+            st.error(f"Error generating response: {exc}")
