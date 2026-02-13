@@ -181,17 +181,15 @@ if user_question := st.chat_input("Ask about the 7 syllabus documents"):
     system_prompt = (
         "You are a helpful course assistant. Answer using the retrieved syllabus "
         "context when relevant. If the context is insufficient, say so and then "
-        "provide your best general guidance.\n\n"
-        "You must start your answer with exactly one of:\n"
-        "RAG Status: Using retrieved syllabus context.\n"
-        "RAG Status: No relevant retrieved syllabus context found.\n"
+        "provide your best general guidance."
+        "You must start your answer with exactly one of:"
+        "RAG Status: Using retrieved syllabus context."
+        "RAG Status: No relevant retrieved syllabus context found."
     )
 
     user_prompt = (
         f"Question:\n{user_question}\n\n"
         f"Retrieved context:\n{rag_context if rag_used else 'None'}\n\n"
-        "If you used retrieved context, cite source filenames in a short "
-        "'Sources used:' line at the end."
     )
 
     with st.chat_message("assistant"):
