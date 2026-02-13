@@ -183,8 +183,8 @@ if user_question := st.chat_input("Ask about the 7 syllabus documents"):
         "context when relevant. If the context is insufficient, say so and then "
         "provide your best general guidance.\n\n"
         "You must start your answer with exactly one of:\n"
-        "- RAG Status: Using retrieved syllabus context.\n"
-        "- RAG Status: No relevant retrieved syllabus context found.\n"
+        "RAG Status: Using retrieved syllabus context.\n"
+        "RAG Status: No relevant retrieved syllabus context found.\n"
     )
 
     user_prompt = (
