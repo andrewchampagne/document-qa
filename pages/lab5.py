@@ -107,7 +107,7 @@ def main():
 
 
         st.markdown('**Clothing suggestions**')
-        for s in clothing_suggestion(weather.get('temperature'), weather.get('description')):
+        for s in clothing_suggestion(weather.get('temperature')):
             st.write('- ' + s)
 
         st.markdown('**Activity advice**')
