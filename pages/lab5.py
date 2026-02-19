@@ -36,13 +36,8 @@ def get_current_weather(location, api_key, units='imperial'):
     }
 
 
-def clothing_suggestion(temp_f, description):
-    desc = description.lower()
+def clothing_suggestion(temp_f):
     suggestions = []
-    if 'rain' in desc or 'drizzle' in desc:
-        suggestions.append('Waterproof jacket or umbrella')
-    if 'snow' in desc:
-        suggestions.append('Warm coat, waterproof boots, gloves, and hat')
     if temp_f is None:
         return ['No temperature data available']
     if temp_f <= 32:
@@ -52,27 +47,25 @@ def clothing_suggestion(temp_f, description):
     elif temp_f <= 65:
         suggestions.append('Long sleeve shirt and light jacket')
     elif temp_f <= 75:
-        suggestions.append('light layers')
+        suggestions.append('Light layers')
     else:
         suggestions.append('Shorts, breathable fabrics, hat, and sunscreen')
     return suggestions
 
 
 def activity_advice(weather):
-    desc = weather.get('description', '').lower()
     temp = weather.get('temperature')
+    humidity = weather.get('humidity') or 0
     advice = []
-    if 'rain' in desc or 'drizzle' in desc or 'thunder' in desc:
-        advice.append('Consider indoor activities or bring rain gear.')
-    if 'snow' in desc:
-        advice.append('Limit outdoor exposure; snow-appropriate footwear advised.')
     if temp is not None:
         if temp < 20:
             advice.append('Very cold — avoid long outdoor exertion.')
-        elif 50 <= temp <= 75 and 'rain' not in desc and 'snow' not in desc:
+        elif 50 <= temp <= 75 and humidity < 80:
             advice.append('Good conditions for walking, jogging, or a picnic.')
         elif temp > 75:
             advice.append('Hot — schedule strenuous activity for morning/evening.')
+    if humidity and humidity > 90:
+        advice.append('High humidity — it may feel muggy; consider indoor alternatives.')
     if not advice:
         advice.append('No specific cautions — enjoy your outdoor plans.')
     return advice
@@ -93,8 +86,7 @@ def main():
         api_key = None
 
     if not api_key:
-        st.error('OpenWeatherMap API key not found in secrets. Add it to `.streamlit/secrets.toml`.')
-        st.info('Example contents:\n[openweather]\napi_key = "YOUR_API_KEY"')
+        st.error('OpenWeatherMap API key not found')
         st.stop()
 
     units = st.selectbox('Units', options=['imperial', 'metric'], index=0)
@@ -113,8 +105,6 @@ def main():
         cols[1].metric('Feels like', f"{weather.get('feels_like')} °{'F' if units=='imperial' else 'C'}")
         cols[2].metric('Humidity', f"{weather.get('humidity')} %")
 
-        st.write(f"**Conditions:** {weather.get('description')}")
-        st.write(f"**Wind speed:** {weather.get('wind_speed')} {'mph' if units=='imperial' else 'm/s'}")
 
         st.markdown('**Clothing suggestions**')
         for s in clothing_suggestion(weather.get('temperature'), weather.get('description')):
