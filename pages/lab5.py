@@ -206,8 +206,10 @@ def main():
                 st.error(f'Error fetching weather from OpenWeatherMap: {e}')
                 return
 
-            # Provide the function result back to the model
-            messages.append({"role": "function", "name": "get_current_weather", "content": json.dumps(weather)})
+            # Provide the function result back to the model. Some models/platforms
+            # don't accept messages with role 'function', so return the tool
+            # output as an assistant message instead.
+            messages.append({"role": "assistant", "content": json.dumps({"tool": "get_current_weather", "result": weather})})
 
             try:
                 followup = client.chat.completions.create(
