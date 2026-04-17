@@ -127,7 +127,7 @@ Return ONLY the JSON list, nothing else."""
             save_memories(current_memories)
             st.rerun()
         else:
-            st.warning("DEBUG - No new memories extracted")
+            st.warning("No new memories extracted")
 
     except json.JSONDecodeError as e:
         st.error(f"Failed to parse memories as JSON: {e}")
