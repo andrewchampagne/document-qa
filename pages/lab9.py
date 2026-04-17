@@ -64,7 +64,6 @@ if user_input := st.chat_input("Say something..."):
     api_messages = [{"role": "system", "content": system_prompt}]
     api_messages.extend(st.session_state.lab9_messages)
 
-    # Generate response — manually accumulate streamed chunks
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
@@ -86,37 +85,50 @@ if user_input := st.chat_input("Say something..."):
 
     st.session_state.lab9_messages.append({"role": "assistant", "content": response})
 
-    # Extract new memories using a cheap model
-    try:
-        existing_memories_text = json.dumps(current_memories) if current_memories else "[]"
-        extraction_prompt = (
-            "Analyze the following conversation exchange and extract any new facts about the user "
-            "worth remembering for future conversations. Look for: name, location, preferences, "
-            "interests, hobbies, job, family details, goals, or any other personal information.\n\n"
-            f"Existing memories (do NOT duplicate these): {existing_memories_text}\n\n"
-            f"User said: {user_input}\n"
-            f"Assistant replied: {response}\n\n"
-            "Return ONLY a JSON list of short strings for any NEW facts discovered. "
-            "If there are no new facts, return an empty list: []\n"
-            'Example: ["User\'s name is Alice", "User likes hiking"]\n'
-            "Return ONLY valid JSON, no other text."
-        )
+    # DEBUG: show what we captured
+    st.info(f"DEBUG - User input: {user_input[:100]}")
+    st.info(f"DEBUG - Response length: {len(response)} chars")
+    st.info(f"DEBUG - Response preview: {response[:200]}")
 
+    # Extract new memories using a cheap model
+    existing_memories_text = json.dumps(current_memories) if current_memories else "[]"
+    extraction_prompt = (
+        "Analyze the following conversation exchange and extract any new facts about the user "
+        "worth remembering for future conversations. Look for: name, location, preferences, "
+        "interests, hobbies, job, family details, goals, or any other personal information.\n\n"
+        f"Existing memories (do NOT duplicate these): {existing_memories_text}\n\n"
+        f"User said: {user_input}\n"
+        f"Assistant replied: {response}\n\n"
+        "Return ONLY a JSON list of short strings for any NEW facts discovered. "
+        "If there are no new facts, return an empty list: []\n"
+        'Example: ["User\'s name is Alice", "User likes hiking"]\n'
+        "Return ONLY valid JSON, no other text."
+    )
+
+    try:
         extraction_response = client.chat.completions.create(
             model="gpt-4.1-nano",
             messages=[{"role": "user", "content": extraction_prompt}],
         )
-
         raw = extraction_response.choices[0].message.content.strip()
+        st.info(f"DEBUG - Raw extraction response: {raw}")
+
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
         new_memories = json.loads(raw)
+        st.info(f"DEBUG - Parsed memories: {new_memories}")
 
         if isinstance(new_memories, list) and new_memories:
             current_memories.extend(new_memories)
             save_memories(current_memories)
+            st.success(f"DEBUG - Saved {len(new_memories)} new memories! Rerunning...")
             st.rerun()
+        else:
+            st.warning("DEBUG - No new memories extracted (empty list returned)")
 
+    except json.JSONDecodeError as e:
+        st.error(f"DEBUG - JSON parse failed: {e}")
+        st.error(f"DEBUG - Raw text was: {raw}")
     except Exception as e:
-        st.error(f"Memory extraction failed: {e}")
+        st.error(f"DEBUG - Extraction call failed: {type(e).__name__}: {e}")
