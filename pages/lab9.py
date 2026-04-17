@@ -85,7 +85,6 @@ if user_input := st.chat_input("Say something..."):
 
     st.session_state.lab9_messages.append({"role": "assistant", "content": response})
 
-    # Extract new memories — use gpt-4.1-mini for reliability
     existing_memories_text = json.dumps(current_memories) if current_memories else "[]"
     extraction_prompt = f"""You are a memory extraction assistant. Your ONLY job is to find NEW facts about the user from their latest message.
 
@@ -116,13 +115,12 @@ Return ONLY the JSON list, nothing else."""
             messages=[{"role": "user", "content": extraction_prompt}],
         )
         raw = extraction_response.choices[0].message.content.strip()
-        st.info(f"DEBUG - Raw extraction response: {raw}")
 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
         new_memories = json.loads(raw)
-        st.info(f"DEBUG - Parsed memories: {new_memories}")
+        
 
         if isinstance(new_memories, list) and new_memories:
             current_memories.extend(new_memories)
@@ -132,7 +130,6 @@ Return ONLY the JSON list, nothing else."""
             st.warning("DEBUG - No new memories extracted")
 
     except json.JSONDecodeError as e:
-        st.error(f"DEBUG - JSON parse failed: {e}")
-        st.error(f"DEBUG - Raw text was: {raw}")
+        st.error(f"Failed to parse memories as JSON: {e}")
     except Exception as e:
-        st.error(f"DEBUG - Extraction failed: {type(e).__name__}: {e}")
+        st.error(f"Extraction failed: {type(e).__name__}: {e}")
