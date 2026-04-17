@@ -85,25 +85,30 @@ if user_input := st.chat_input("Say something..."):
 
     st.session_state.lab9_messages.append({"role": "assistant", "content": response})
 
-    # DEBUG: show what we captured
-    st.info(f"DEBUG - User input: {user_input[:100]}")
-    st.info(f"DEBUG - Response length: {len(response)} chars")
-    st.info(f"DEBUG - Response preview: {response[:200]}")
-
-    # Extract new memories using a cheap model
+    # Extract new memories
     existing_memories_text = json.dumps(current_memories) if current_memories else "[]"
-    extraction_prompt = (
-        "Analyze the following conversation exchange and extract any new facts about the user "
-        "worth remembering for future conversations. Look for: name, location, preferences, "
-        "interests, hobbies, job, family details, goals, or any other personal information.\n\n"
-        f"Existing memories (do NOT duplicate these): {existing_memories_text}\n\n"
-        f"User said: {user_input}\n"
-        f"Assistant replied: {response}\n\n"
-        "Return ONLY a JSON list of short strings for any NEW facts discovered. "
-        "If there are no new facts, return an empty list: []\n"
-        'Example: ["User\'s name is Alice", "User likes hiking"]\n'
-        "Return ONLY valid JSON, no other text."
-    )
+    extraction_prompt = f"""You are a memory extraction assistant. Your ONLY job is to find NEW facts about the user from their latest message.
+
+The user's latest message: "{user_input}"
+
+These memories are ALREADY saved (do not repeat any of these):
+{existing_memories_text}
+
+Extract ANY new personal facts from the user's message. Look for:
+- Name, age, birthday
+- School, major, job, career
+- Location, hometown
+- Hobbies, interests, sports, instruments
+- Favorite foods, movies, music, books
+- Family, pets, relationships
+- Goals, plans, preferences
+
+IMPORTANT: If the user's message contains ANY personal facts not already in the saved memories list above, you MUST extract them. Be thorough. Each fact should be a short sentence.
+
+Return a JSON list of strings. If there are truly no new facts, return [].
+Example: ["User is a computer science major", "User's favorite food is salmon"]
+
+Return ONLY the JSON list, nothing else."""
 
     try:
         extraction_response = client.chat.completions.create(
@@ -111,24 +116,16 @@ if user_input := st.chat_input("Say something..."):
             messages=[{"role": "user", "content": extraction_prompt}],
         )
         raw = extraction_response.choices[0].message.content.strip()
-        st.info(f"DEBUG - Raw extraction response: {raw}")
 
         if raw.startswith("```"):
             raw = raw.split("\n", 1)[-1].rsplit("```", 1)[0].strip()
 
         new_memories = json.loads(raw)
-        st.info(f"DEBUG - Parsed memories: {new_memories}")
 
         if isinstance(new_memories, list) and new_memories:
             current_memories.extend(new_memories)
             save_memories(current_memories)
-            st.success(f"DEBUG - Saved {len(new_memories)} new memories! Rerunning...")
             st.rerun()
-        else:
-            st.warning("DEBUG - No new memories extracted (empty list returned)")
 
-    except json.JSONDecodeError as e:
-        st.error(f"DEBUG - JSON parse failed: {e}")
-        st.error(f"DEBUG - Raw text was: {raw}")
     except Exception as e:
-        st.error(f"DEBUG - Extraction call failed: {type(e).__name__}: {e}")
+        st.error(f"Memory extraction failed: {e}")
