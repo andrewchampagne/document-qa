@@ -99,7 +99,6 @@ def main():
     except Exception:
         openweather_api_key = None
 
-    # Direct weather fetch UI
     st.divider()
     st.subheader('Direct weather lookup')
     if st.button('Get Weather'):
@@ -127,7 +126,6 @@ def main():
             for a in activity_advice(weather):
                 st.write('- ' + a)
 
-    # OpenAI-assisted advice (tool-calling)
     st.divider()
     st.subheader('Ask assistant (OpenAI) for clothing & activity advice')
 
@@ -206,9 +204,7 @@ def main():
                 st.error(f'Error fetching weather from OpenWeatherMap: {e}')
                 return
 
-            # Provide the function result back to the model. Some models/platforms
-            # don't accept messages with role 'function', so return the tool
-            # output as an assistant message instead.
+
             messages.append({"role": "assistant", "content": json.dumps({"tool": "get_current_weather", "result": weather})})
 
             try:
