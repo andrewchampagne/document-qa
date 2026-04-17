@@ -8,7 +8,7 @@ lab5 = st.Page("pages/lab5.py", title="Lab 5", icon="🧪")
 lab9 = st.Page("pages/lab9.py", title="Lab 9", icon="🧪")
 
 # Create navigation
-pg = st.navigation([lab1, lab2, lab4, lab5])
+pg = st.navigation([lab1, lab2, lab4, lab5, lab9])
 
 # Run the selected page
 pg.run()
