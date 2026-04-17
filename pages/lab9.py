@@ -64,6 +64,7 @@ if user_input := st.chat_input("Say something..."):
     api_messages = [{"role": "system", "content": system_prompt}]
     api_messages.extend(st.session_state.lab9_messages)
 
+    # Generate response — manually accumulate streamed chunks
     with st.chat_message("assistant"):
         try:
             stream = client.chat.completions.create(
@@ -71,7 +72,14 @@ if user_input := st.chat_input("Say something..."):
                 messages=api_messages,
                 stream=True,
             )
-            response = st.write_stream(stream)
+            response_chunks = []
+            response_container = st.empty()
+            for chunk in stream:
+                token = chunk.choices[0].delta.content
+                if token:
+                    response_chunks.append(token)
+                    response_container.markdown("".join(response_chunks))
+            response = "".join(response_chunks)
         except Exception as e:
             response = f"Sorry, I encountered an error: {e}"
             st.error(response)
